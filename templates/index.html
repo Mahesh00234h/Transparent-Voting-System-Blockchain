@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transparent Voting System</title>
+    <style>
+          body {
+            font-family: 'Arial', sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: #e0e0e0;
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 30px;
+            animation: fadeIn 1s ease-in;
+        }
+
+        form,
+        .buttons {
+            margin: 20px;
+            padding: 20px;
+            border: 1px solid #444;
+            border-radius: 8px;
+            background-color: #1e1e1e;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 400px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        form:hover,
+        .buttons:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        label {
+            display: block;
+            margin: 10px 0 5px;
+            font-weight: bold;
+            color: #cfcfcf;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #555;
+            border-radius: 5px;
+            background-color: #2a2a2a;
+            color: #ffffff;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+            transform: scale(1.05);
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+
+        .result {
+            margin: 20px;
+            padding: 15px;
+            border: 1px solid #444;
+            border-radius: 5px;
+            background-color: #1e1e1e;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 600px;
+            animation: slideIn 1s ease-out;
+        }
+
+        .loading {
+            font-size: 1rem;
+            color: #007bff;
+            margin: 20px 0;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-100%);
+            }
+
+            to {
+                transform: translateX(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+
+            form,
+            .buttons {
+                width: 90%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Transparent Voting System</h1>
+
+    <!-- Add Vote Form -->
+    <form id="voteForm">
+        <label for="voter_id">Voter ID:</label>
+        <input type="text" id="voter_id" name="voter_id" required>
+
+        <label for="candidate">Candidate Name:</label>
+        <input type="text" id="candidate" name="candidate" required>
+
+        <button type="submit">Submit Vote</button>
+    </form>
+
+    <!-- Action Buttons -->
+    <div class="buttons">
+        <button onclick="viewBlockchain()">View Blockchain</button>
+        <button onclick="validateBlockchain()">Validate Blockchain</button>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loading" class="loading" style="display: none;">Loading...</div>
+
+    <!-- Result Section -->
+    <div id="result" class="result" style="display: none;"></div>
+
+    <script>
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function displayResult(content) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = content;
+        }
+
+        async function submitVote(voterId, candidate) {
+            try {
+                showLoading();
+                const response = await fetch('/add_vote', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ voter_id: voterId, candidate: candidate })
+                });
+
+                const result = await response.json();
+                displayResult(result.success ? result.message : `Error: ${result.message}`);
+            } catch (error) {
+                displayResult(`Error: ${error.message}`);
+            } finally {
+                hideLoading();
+                document.getElementById('voteForm').reset();
+            }
+        }
+
+        document.getElementById('voteForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+            const voterId = document.getElementById('voter_id').value.trim();
+            const candidate = document.getElementById('candidate').value.trim();
+
+            if (!voterId || !candidate) {
+                displayResult('Error: Both fields are required!');
+                return;
+            }
+
+            if (!/^[a-zA-Z0-9]+$/.test(voterId)) {
+                displayResult('Error: Voter ID contains invalid characters!');
+                return;
+            }
+
+            submitVote(voterId, candidate);
+        });
+
+        async function viewBlockchain() {
+            try {
+                showLoading();
+                const response = await fetch('/view_chain');
+                const data = await response.json();
+
+                let content = '<h2>Blockchain:</h2>';
+                data.chain.forEach(block => {
+                    content += `<p><strong>Index:</strong> ${block.index}</p>`;
+                    content += `<p><strong>Timestamp:</strong> ${block.timestamp}</p>`;
+                    content += `<p><strong>Data:</strong> ${block.data}</p>`;
+                    content += `<p><strong>Hash:</strong> ${block.hash}</p>`;
+                    content += `<p><strong>Previous Hash:</strong> ${block.previous_hash}</p>`;
+                    content += '<hr>';
+                });
+
+                displayResult(content);
+            } catch (error) {
+                displayResult(`Error: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function validateBlockchain() {
+            try {
+                showLoading();
+                const response = await fetch('/validate');
+                const result = await response.json();
+                displayResult(result.success ? result.message : `Error: ${result.message}`);
+            } catch (error) {
+                displayResult(`Error: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
+        }
+    </script>
+</body>
+
+</html>
